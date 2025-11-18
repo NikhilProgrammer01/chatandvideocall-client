@@ -102,6 +102,7 @@ const handleStartCall = async (): Promise<void> => {
       create: false,
     });
 
+    console.log('✅ Initiator successfully joined call on client side.'); 
     console.log('✅ Successfully joined call');
 
     // ✅ Enable camera after joining

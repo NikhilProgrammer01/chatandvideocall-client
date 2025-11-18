@@ -14,7 +14,7 @@ import 'stream-chat-react/dist/css/v2/index.css';
 import '@stream-io/video-react-sdk/dist/css/styles.css';
 
 
-const API_URL = 'http://localhost:3001';
+ const API_URL = 'http://localhost:3001';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
@@ -28,10 +28,13 @@ const App: React.FC = () => {
     setError(null);
 
     try {
-      const response = await axios.post(`${API_URL}/auth/token`, {
+      const targetUrl = `${API_URL}/auth/token`;
+      console.log('Attempting login to URL:', targetUrl); // <-- ADD THIS LINE
+      const response = await axios.post(`${targetUrl}`, {
         userId,
         name,
       });
+
 
       const { chatToken, videoToken, apiKey } = response.data;
 

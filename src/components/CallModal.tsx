@@ -19,6 +19,7 @@ const CallModal: React.FC<CallModalProps> = ({ onClose }) => {
       setIsProcessing(true);
       try {
         await call.join();
+        console.log('✅ User (vak123) successfully joined call via CallModal.');
         onClose();
       } catch (error) {
         console.error('Error joining call:', error);

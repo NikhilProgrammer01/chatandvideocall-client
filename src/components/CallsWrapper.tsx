@@ -6,12 +6,18 @@ import {
   CallControls,
   CallParticipantsList,
   StreamTheme,
+  useCallStateHooks
 } from '@stream-io/video-react-sdk';
 import '@stream-io/video-react-sdk/dist/css/styles.css';
 
 interface CallsWrapperProps {
   children: React.ReactNode;
   
+}
+interface ActiveCallUIProps {
+  onLeave: () => void;
+  // ✅ Add call prop here
+  call: any; // The StreamCall object
 }
 
 // Custom Incoming Call Modal
@@ -55,8 +61,36 @@ const IncomingCallModal: React.FC<{
   );
 };
 
-// Active Call UI with StreamTheme wrapper
-const ActiveCallUI: React.FC<{ onLeave: () => void }> = ({ onLeave }) => {
+const ActiveCallUI: React.FC<ActiveCallUIProps> = ({ onLeave, call }) => {
+  const { useCallStartedAt } = useCallStateHooks();
+  const callStartedAt = useCallStartedAt();
+  const [duration, setDuration] = useState<string>('00:00:00');
+
+  useEffect(() => {
+    if (!callStartedAt) {
+      setDuration('00:00:00');
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const started = new Date(callStartedAt);
+      const diff = now.getTime() - started.getTime();
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      const formatTime = (time: number) => String(time).padStart(2, '0');
+
+      setDuration(
+        `${formatTime(hours)}:${formatTime(minutes)}:${formatTime(seconds)}`,
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [callStartedAt]);
+
   return (
     <StreamTheme>
       <div style={styles.callContainer}>
@@ -64,12 +98,14 @@ const ActiveCallUI: React.FC<{ onLeave: () => void }> = ({ onLeave }) => {
           <div style={styles.headerLeft}>
             <span style={styles.liveIndicator}>● LIVE</span>
             <h3 style={styles.callTitle}>Active Call</h3>
+            {/* ✅ Display call duration */}
+            {callStartedAt && <span style={styles.callDuration}>{duration}</span>}
           </div>
           <button onClick={onLeave} style={styles.closeButton} title="Leave Call">
             ✕
           </button>
         </div>
-        
+
         <div style={styles.videoContainer}>
           <SpeakerLayout participantsBarPosition="bottom" />
         </div>
@@ -127,14 +163,24 @@ useEffect(() => {
         status: 'active',
       }));
     }
+      console.log(`[Stream Events] Call ${callId} accepted. New status: active`); // ✅ Add this
   };
 
   const handleCallEnded = (event: any) => {
-    setCallState({ call: null, status: 'idle', callerName: '' });
+     console.log('--- Stream Call ended event received ---', event); // ✅ More prominent log
+  console.log('Call ID:', event.call?.id);
+  console.log('Call Type:', event.call?.type);
+  console.log('Ended Reason:', event.call?.ended_reason); // Check this field if available
+  console.log('User who ended it:', event.user?.id || 'N/A');
+  setCallState({ call: null, status: 'idle', callerName: '' });
   };
 
   const handleCallRejected = (event: any) => {
-    setCallState({ call: null, status: 'idle', callerName: '' });
+    console.log('--- Stream Call rejected event received ---', event); // ✅ More prominent log
+  console.log('Call ID:', event.call?.id);
+  console.log('Call Type:', event.call?.type);
+  console.log('Rejected by User:', event.user?.id || 'N/A');
+  setCallState({ call: null, status: 'idle', callerName: '' });
   };
 
   const handleCallLive = (event: any) => {
@@ -243,7 +289,7 @@ useEffect(() => {
 
       {callState.status === 'active' && callState.call && (
         <StreamCall call={callState.call}>
-          <ActiveCallUI onLeave={handleLeave} />
+            <ActiveCallUI onLeave={handleLeave} call={callState.call} />
         </StreamCall>
       )}
     </>
@@ -272,6 +318,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     width: '90%',
     textAlign: 'center',
     boxShadow: '0 25px 70px rgba(0, 0, 0, 0.4)',
+  },
+    callDuration: {
+    color: '#a0a0a0',
+    fontSize: '14px',
+    marginLeft: '10px',
   },
   iconContainer: {
     position: 'relative',
